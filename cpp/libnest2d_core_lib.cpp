@@ -465,10 +465,8 @@ RunResult nest_run_impl(
         const int64_t max_x = max_pt.X;
         const int64_t max_y = max_pt.Y;
 
-        const int64_t shift_x = usable_w / 2;
-        const int64_t shift_y = usable_h / 2;
-        const int64_t x = min_x + shift_x;
-        const int64_t y = (shift_y - max_y);
+        const int64_t x = min_x;
+        const int64_t y = usable_h - max_y;
         const int64_t width = max_x - min_x - spacing;
         const int64_t height = max_y - min_y - spacing;
 

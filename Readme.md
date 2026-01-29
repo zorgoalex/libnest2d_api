@@ -113,6 +113,8 @@ Top-level fields:
 | `explore_holes` | boolean | no | Whether to explore holes (default: engine default). |
 | `parallel` | boolean | no | Whether to use parallel placement (default: engine default). |
 
+Note: `placer="nfp"` requires optimizer support in the build. If not available, the service returns a constraint error.
+
 `stock` item fields:
 
 | Field | Type | Required | Description |

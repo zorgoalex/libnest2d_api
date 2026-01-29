@@ -4,10 +4,11 @@ import random
 import time
 from dataclasses import dataclass
 
+from .core import try_optimize
 from .config import Settings
 from .errors import ServiceError
-from .models import OptimizeRequest
-from .packing import SheetSolution, pack_shelves
+from .models import OptimizeRequest, TrimMM
+from .packing import Placement, SheetSolution, pack_shelves
 
 
 @dataclass
@@ -17,6 +18,10 @@ class OptimizationResult:
 
 
 def optimize(req: OptimizeRequest, settings: Settings) -> OptimizationResult:
+    core_result = try_optimize(req, settings)
+    if core_result is not None:
+        return _from_core(core_result)
+
     time_limit_ms = req.params.time_limit_ms or settings.default_time_limit_ms
     restarts = req.params.restarts or settings.default_restarts
 
