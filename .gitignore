@@ -221,3 +221,18 @@ ai_docs/
 .gemini/
 .factory/
 CLAUDE.md
+
+# C++ build artifacts
+*.o
+*.obj
+*.a
+*.lib
+*.dll
+*.dylib
+*.out
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+compile_commands.json
+cmake-build-*/
