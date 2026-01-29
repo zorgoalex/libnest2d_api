@@ -1,0 +1,18 @@
+[build-system]
+requires = ["scikit-build-core>=0.6", "pybind11>=2.11"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "libnest2d-service"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "anyio",
+    "pydantic",
+]
+
+[tool.scikit-build]
+wheel.packages = ["libnest2d_service"]
+wheel.package-dir = "src"

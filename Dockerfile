@@ -9,7 +9,11 @@ COPY requirements.txt /app/requirements.txt
 RUN pip install --upgrade pip \
     && pip wheel --no-cache-dir -r /app/requirements.txt -w /wheels
 
+COPY pyproject.toml /app/pyproject.toml
+COPY CMakeLists.txt /app/CMakeLists.txt
+COPY cpp /app/cpp
 COPY src /app/src
+RUN pip wheel --no-cache-dir . -w /wheels
 
 FROM python:3.11-slim AS runtime
 
@@ -25,9 +29,6 @@ WORKDIR /app
 COPY --from=builder /wheels /wheels
 RUN pip install --no-cache-dir /wheels/* \
     && rm -rf /wheels
-
-COPY src /app/src
-ENV PYTHONPATH=/app/src
 
 HEALTHCHECK --interval=10s --timeout=2s --retries=3 CMD-SHELL python -c "import os, urllib.request; urllib.request.urlopen(f'http://127.0.0.1:{os.getenv(\"PORT\", \"8080\")}/health/live')"
 

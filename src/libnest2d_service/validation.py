@@ -69,8 +69,9 @@ def _validate_items_fit(
 
 
 def _item_fits_any_stock(item: Item, stocks: list[Stock], trim_mm, spacing_mm: float) -> bool:
-    req_w = item.width_mm + spacing_mm
-    req_h = item.height_mm + spacing_mm
+    del spacing_mm
+    req_w = item.width_mm
+    req_h = item.height_mm
 
     for stock in stocks:
         usable_w = stock.width_mm - trim_mm.left - trim_mm.right

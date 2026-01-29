@@ -144,3 +144,40 @@ def _is_better(objective: str, candidate: OptimizationResult, best: Optimization
     if c_summary["total_waste_area_mm2"] != b_summary["total_waste_area_mm2"]:
         return c_summary["total_waste_area_mm2"] < b_summary["total_waste_area_mm2"]
     return c_summary["used_stock_count"] < b_summary["used_stock_count"]
+
+
+def _from_core(result: dict) -> OptimizationResult:
+    summary = result.get("summary")
+    solutions_data = result.get("solutions", [])
+    if summary is None:
+        raise ServiceError(code="INTERNAL", message="core result missing summary")
+
+    solutions: list[SheetSolution] = []
+    for solution in solutions_data:
+        trim_raw = solution.get("trim_mm", {})
+        trim = TrimMM(**trim_raw)
+        placements = [
+            Placement(
+                item_id=placement["item_id"],
+                instance=placement["instance"],
+                x_mm=placement["x_mm"],
+                y_mm=placement["y_mm"],
+                width_mm=placement["width_mm"],
+                height_mm=placement["height_mm"],
+                rotated=placement["rotated"],
+                pattern_direction=placement["pattern_direction"],
+            )
+            for placement in solution.get("placements", [])
+        ]
+        solutions.append(
+            SheetSolution(
+                stock_id=solution["stock_id"],
+                index=solution["index"],
+                width_mm=solution["width_mm"],
+                height_mm=solution["height_mm"],
+                trim_mm=trim,
+                placements=placements,
+            )
+        )
+
+    return OptimizationResult(summary=summary, solutions=solutions)

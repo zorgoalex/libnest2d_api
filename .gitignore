@@ -227,6 +227,7 @@ CLAUDE.md
 *.obj
 *.a
 *.lib
+*.pyd
 *.dll
 *.dylib
 *.out
