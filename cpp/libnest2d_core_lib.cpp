@@ -219,8 +219,18 @@ RunResult nest_run(
     const int64_t usable_h = sheets.front().first->height - trim.top - trim.bottom;
     libnest2d::Box bin(usable_w, usable_h);
 
+    bool allow_rotations = true;
+    for (const auto &inst : instances) {
+        if (!inst.allow_rotation) {
+            allow_rotations = false;
+            break;
+        }
+    }
+
     ensure_time(start, time_limit_ms);
-    const auto bins_used = libnest2d::nest(items, bin);
+    libnest2d::NestConfig<libnest2d::BottomLeftPlacer> cfg;
+    cfg.placer_config.allow_rotations = allow_rotations;
+    const auto bins_used = libnest2d::nest<libnest2d::BottomLeftPlacer>(items, bin, 0, cfg);
     ensure_time(start, time_limit_ms);
 
     std::unordered_map<int, SheetSolution> solutions;
@@ -228,21 +238,15 @@ RunResult nest_run(
     for (size_t idx = 0; idx < items.size(); ++idx) {
         const auto &item = items[idx];
         const auto &meta = instances[idx];
-        const auto polygon = item.transformedShape();
-        if (polygon.empty()) {
-            continue;
-        }
+        const auto &polygon = item.transformedShape();
+        const auto bb = libnest2d::shapelike::boundingBox(polygon);
+        const auto min_pt = bb.minCorner();
+        const auto max_pt = bb.maxCorner();
 
-        int64_t min_x = polygon.front().X;
-        int64_t min_y = polygon.front().Y;
-        int64_t max_x = polygon.front().X;
-        int64_t max_y = polygon.front().Y;
-        for (const auto &pt : polygon) {
-            min_x = std::min(min_x, static_cast<int64_t>(pt.X));
-            min_y = std::min(min_y, static_cast<int64_t>(pt.Y));
-            max_x = std::max(max_x, static_cast<int64_t>(pt.X));
-            max_y = std::max(max_y, static_cast<int64_t>(pt.Y));
-        }
+        const int64_t min_x = min_pt.X;
+        const int64_t min_y = min_pt.Y;
+        const int64_t max_x = max_pt.X;
+        const int64_t max_y = max_pt.Y;
 
         const int64_t shift_x = usable_w / 2;
         const int64_t shift_y = usable_h / 2;

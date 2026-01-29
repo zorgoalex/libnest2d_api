@@ -15,4 +15,3 @@ dependencies = [
 
 [tool.scikit-build]
 wheel.packages = ["libnest2d_service"]
-wheel.package-dir = "src"

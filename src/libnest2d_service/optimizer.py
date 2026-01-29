@@ -69,9 +69,7 @@ def _shuffle_items(req: OptimizeRequest, seed: int) -> list:
     instances = []
     for item in req.items:
         for _ in range(item.qty):
-            instances.append(
-                item.model_copy(update={\"qty\": 1})
-            )
+            instances.append(item.model_copy(update={"qty": 1}))
     rng = random.Random(seed)
     rng.shuffle(instances)
     return instances

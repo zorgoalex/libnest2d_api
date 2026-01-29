@@ -17,15 +17,28 @@ set(LIBNEST2D_THREADING none CACHE STRING "" FORCE)
 set(RP_ENABLE_DOWNLOADING ON CACHE BOOL "" FORCE)
 
 if (LIBNEST2D_SOURCE_DIR)
-    add_subdirectory(${LIBNEST2D_SOURCE_DIR} libnest2d EXCLUDE_FROM_ALL)
+    set(libnest2d_SOURCE_DIR ${LIBNEST2D_SOURCE_DIR})
+    set(libnest2d_BINARY_DIR ${CMAKE_BINARY_DIR}/_deps/libnest2d-build)
 elseif (LIBNEST2D_FETCH)
     include(FetchContent)
     FetchContent_Declare(
         libnest2d
         GIT_REPOSITORY https://github.com/tamasmeszaros/libnest2d.git
-        GIT_TAG 5.0.0
+        GIT_TAG 663daa69e1d7478669f714218e27681edbc96640
+        GIT_SHALLOW TRUE
     )
-    FetchContent_MakeAvailable(libnest2d)
+    FetchContent_Populate(libnest2d)
+endif()
+
+if (DEFINED libnest2d_SOURCE_DIR)
+    set(OPTIMLIB_CMAKE "${libnest2d_SOURCE_DIR}/include/libnest2d/optimizers/optimlib/CMakeLists.txt")
+    if (EXISTS "${OPTIMLIB_CMAKE}")
+        file(READ "${OPTIMLIB_CMAKE}" OPTIMLIB_CONTENT)
+        if (OPTIMLIB_CONTENT MATCHES "optimlibOptimizer" AND NOT OPTIMLIB_CONTENT MATCHES "Libnest2DTargets")
+            file(APPEND "${OPTIMLIB_CMAKE}" "\ninstall(TARGETS optimlibOptimizer EXPORT Libnest2DTargets)\n")
+        endif()
+    endif()
+    add_subdirectory(${libnest2d_SOURCE_DIR} ${libnest2d_BINARY_DIR} EXCLUDE_FROM_ALL)
 endif()
 
 set(CORE_SRC cpp/libnest2d_core.cpp)

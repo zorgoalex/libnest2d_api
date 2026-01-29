@@ -1,7 +1,7 @@
 FROM python:3.11-slim AS builder
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends build-essential cmake ninja-build git libboost-dev \
+    && apt-get install -y --no-install-recommends build-essential cmake ninja-build git libboost-dev libarmadillo-dev \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -30,6 +30,9 @@ COPY --from=builder /wheels /wheels
 RUN pip install --no-cache-dir /wheels/* \
     && rm -rf /wheels
 
-HEALTHCHECK --interval=10s --timeout=2s --retries=3 CMD-SHELL python -c "import os, urllib.request; urllib.request.urlopen(f'http://127.0.0.1:{os.getenv(\"PORT\", \"8080\")}/health/live')"
+COPY src /app/src
+ENV PYTHONPATH=/app/src
+
+HEALTHCHECK --interval=10s --timeout=2s --retries=3 CMD ["python", "-c", "import os,urllib.request; urllib.request.urlopen('http://127.0.0.1:%s/health/live' % os.getenv('PORT','8080'))"]
 
 CMD ["sh", "-c", "uvicorn libnest2d_service.app:app --host 0.0.0.0 --port ${PORT}"]
