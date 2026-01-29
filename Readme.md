@@ -81,6 +81,10 @@ Top-level fields:
 | `restarts` | integer | no | Number of optimization restarts (minimum 1). |
 | `objective` | string | no | `"min_waste"` or `"min_sheets"` (default: `"min_waste"`). |
 | `seed` | integer | no | Deterministic seed (signed 64-bit range). |
+| `placer` | string | no | `"bottom_left"` or `"nfp"` (default: `"bottom_left"`). |
+| `selector` | string | no | `"first_fit"`, `"filler"`, or `"djd_heuristic"` (default: `"first_fit"`). |
+| `bottom_left` | object | no | Bottom-left placer settings (only when `placer="bottom_left"`). |
+| `nfp` | object | no | NFP placer settings (only when `placer="nfp"`). |
 
 `trim_mm` fields:
 
@@ -90,6 +94,24 @@ Top-level fields:
 | `right` | number | yes | Right margin in mm (>= 0). |
 | `top` | number | yes | Top margin in mm (>= 0). |
 | `bottom` | number | yes | Bottom margin in mm (>= 0). |
+
+`bottom_left` fields:
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `min_obj_distance_mm` | number | no | Minimum object distance in mm (default: engine default). |
+| `epsilon_mm` | number | no | Epsilon in mm for placement precision (default: engine default). |
+
+`nfp` fields:
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `rotations_deg` | array | no | List of rotation angles in degrees (0–360, default: engine default). |
+| `alignment` | string | no | `"center"`, `"bottom_left"`, `"bottom_right"`, `"top_left"`, `"top_right"` (default: engine default). |
+| `starting_point` | string | no | `"bottom_left"`, `"bottom_right"`, `"top_left"`, `"top_right"` (default: engine default). |
+| `accuracy` | number | no | Accuracy in range [0..1] (default: engine default). |
+| `explore_holes` | boolean | no | Whether to explore holes (default: engine default). |
+| `parallel` | boolean | no | Whether to use parallel placement (default: engine default). |
 
 `stock` item fields:
 
@@ -108,8 +130,8 @@ Top-level fields:
 | `width_mm` | number | yes | Item width in mm (> 0). |
 | `height_mm` | number | yes | Item height in mm (> 0). |
 | `qty` | integer | yes | Quantity of items (>= 1). |
-| `rotation` | string | yes | `"forbid"` or `"allow_90"`. |
-| `pattern_direction` | string | yes | `"none"`, `"along_width"`, `"along_height"`. |
+| `rotation` | string | no | `"forbid"` or `"allow_90"` (default: `"allow_90"`). |
+| `pattern_direction` | string | no | `"none"`, `"along_width"`, `"along_height"` (default: `"none"`). |
 
 ### Response keys
 

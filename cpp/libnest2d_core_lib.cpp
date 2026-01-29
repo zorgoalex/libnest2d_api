@@ -10,6 +10,7 @@
 #include <random>
 #include <stdexcept>
 #include <string>
+#include <type_traits>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -35,6 +36,28 @@ struct Trim {
     int64_t bottom;
 };
 
+struct BottomLeftConfigParams {
+    bool has_min_obj_distance = false;
+    int64_t min_obj_distance = 0;
+    bool has_epsilon = false;
+    int64_t epsilon = 0;
+};
+
+struct NfpConfigParams {
+    bool has_rotations = false;
+    std::vector<double> rotations_rad;
+    bool has_alignment = false;
+    std::string alignment;
+    bool has_starting_point = false;
+    std::string starting_point;
+    bool has_accuracy = false;
+    double accuracy = 0.0;
+    bool has_explore_holes = false;
+    bool explore_holes = false;
+    bool has_parallel = false;
+    bool parallel = false;
+};
+
 struct Params {
     int64_t spacing;
     int time_limit_ms;
@@ -42,6 +65,10 @@ struct Params {
     std::string objective;
     bool has_seed;
     int64_t seed;
+    std::string placer;
+    std::string selector;
+    BottomLeftConfigParams bottom_left;
+    NfpConfigParams nfp;
 };
 
 struct Stock {
@@ -117,12 +144,74 @@ Trim parse_trim(const py::dict &data) {
     };
 }
 
+BottomLeftConfigParams parse_bottom_left(const py::dict &data) {
+    BottomLeftConfigParams params;
+    if (data.contains("min_obj_distance_mm") && !data["min_obj_distance_mm"].is_none()) {
+        params.has_min_obj_distance = true;
+        params.min_obj_distance = scale_value(data["min_obj_distance_mm"].cast<double>());
+    }
+    if (data.contains("epsilon_mm") && !data["epsilon_mm"].is_none()) {
+        params.has_epsilon = true;
+        params.epsilon = scale_value(data["epsilon_mm"].cast<double>());
+    }
+    return params;
+}
+
+NfpConfigParams parse_nfp(const py::dict &data) {
+    NfpConfigParams params;
+    if (data.contains("rotations_deg") && !data["rotations_deg"].is_none()) {
+        params.has_rotations = true;
+        auto list = data["rotations_deg"].cast<std::vector<double>>();
+        params.rotations_rad.reserve(list.size());
+        for (double deg : list) {
+            params.rotations_rad.push_back(deg_to_rad(deg));
+        }
+    }
+    if (data.contains("alignment") && !data["alignment"].is_none()) {
+        params.has_alignment = true;
+        params.alignment = data["alignment"].cast<std::string>();
+    }
+    if (data.contains("starting_point") && !data["starting_point"].is_none()) {
+        params.has_starting_point = true;
+        params.starting_point = data["starting_point"].cast<std::string>();
+    }
+    if (data.contains("accuracy") && !data["accuracy"].is_none()) {
+        params.has_accuracy = true;
+        params.accuracy = data["accuracy"].cast<double>();
+    }
+    if (data.contains("explore_holes") && !data["explore_holes"].is_none()) {
+        params.has_explore_holes = true;
+        params.explore_holes = data["explore_holes"].cast<bool>();
+    }
+    if (data.contains("parallel") && !data["parallel"].is_none()) {
+        params.has_parallel = true;
+        params.parallel = data["parallel"].cast<bool>();
+    }
+    return params;
+}
+
 Params parse_params(const py::dict &data) {
     Params params;
     params.spacing = scale_value(data["spacing_mm"].cast<double>());
     params.time_limit_ms = data["time_limit_ms"].cast<int>();
     params.restarts = data["restarts"].cast<int>();
     params.objective = data["objective"].cast<std::string>();
+    if (data.contains("placer") && !data["placer"].is_none()) {
+        params.placer = data["placer"].cast<std::string>();
+    } else {
+        params.placer = "bottom_left";
+    }
+    if (data.contains("selector") && !data["selector"].is_none()) {
+        params.selector = data["selector"].cast<std::string>();
+    } else {
+        params.selector = "first_fit";
+    }
+    if (data.contains("bottom_left") && !data["bottom_left"].is_none()) {
+        params.bottom_left = parse_bottom_left(data["bottom_left"].cast<py::dict>());
+    }
+    if (data.contains("nfp") && !data["nfp"].is_none()) {
+        params.nfp = parse_nfp(data["nfp"].cast<py::dict>());
+    }
     if (data.contains("seed") && !data["seed"].is_none()) {
         params.has_seed = true;
         params.seed = data["seed"].cast<int64_t>();
@@ -186,13 +275,55 @@ bool is_rotated(double radians) {
     return std::fabs(norm - half_pi) < 1e-3 || std::fabs(norm - 3.0 * half_pi) < 1e-3;
 }
 
-RunResult nest_run(
+double deg_to_rad(double degrees) {
+    return degrees * M_PI / 180.0;
+}
+
+libnest2d::NfpPlacer::Alignment parse_alignment(const std::string &value) {
+    using Alignment = libnest2d::NfpPlacer::Alignment;
+    if (value == "center") {
+        return Alignment::CENTER;
+    }
+    if (value == "bottom_left") {
+        return Alignment::BOTTOM_LEFT;
+    }
+    if (value == "bottom_right") {
+        return Alignment::BOTTOM_RIGHT;
+    }
+    if (value == "top_left") {
+        return Alignment::TOP_LEFT;
+    }
+    if (value == "top_right") {
+        return Alignment::TOP_RIGHT;
+    }
+    throw std::invalid_argument("invalid alignment value");
+}
+
+libnest2d::NfpPlacer::StartingPoint parse_starting_point(const std::string &value) {
+    using StartingPoint = libnest2d::NfpPlacer::StartingPoint;
+    if (value == "bottom_left") {
+        return StartingPoint::BOTTOM_LEFT;
+    }
+    if (value == "bottom_right") {
+        return StartingPoint::BOTTOM_RIGHT;
+    }
+    if (value == "top_left") {
+        return StartingPoint::TOP_LEFT;
+    }
+    if (value == "top_right") {
+        return StartingPoint::TOP_RIGHT;
+    }
+    throw std::invalid_argument("invalid starting_point value");
+}
+
+template <class Placer, class Selector>
+RunResult nest_run_impl(
     const std::vector<ItemInstance> &instances,
     const std::vector<Stock> &stocks,
     const Trim &trim,
-    int64_t spacing,
-    const std::chrono::steady_clock::time_point &start,
-    int time_limit_ms
+    const Params &params,
+    bool allow_rotations,
+    const std::chrono::steady_clock::time_point &start
 ) {
     const auto sheets = expand_sheets(stocks);
     if (sheets.empty()) {
@@ -203,6 +334,7 @@ RunResult nest_run(
     std::vector<libnest2d::Item> items;
     items.reserve(instances.size());
 
+    const int64_t spacing = params.spacing;
     for (const auto &inst : instances) {
         const int64_t width = inst.width + spacing;
         const int64_t height = inst.height + spacing;
@@ -219,19 +351,46 @@ RunResult nest_run(
     const int64_t usable_h = sheets.front().first->height - trim.top - trim.bottom;
     libnest2d::Box bin(usable_w, usable_h);
 
-    bool allow_rotations = true;
-    for (const auto &inst : instances) {
-        if (!inst.allow_rotation) {
-            allow_rotations = false;
-            break;
+    ensure_time(start, params.time_limit_ms);
+    libnest2d::NestConfig<Placer, Selector> cfg;
+    if constexpr (std::is_same_v<Placer, libnest2d::BottomLeftPlacer>) {
+        cfg.placer_config.allow_rotations = allow_rotations;
+        if (params.bottom_left.has_min_obj_distance) {
+            cfg.placer_config.min_obj_distance = params.bottom_left.min_obj_distance;
+        }
+        if (params.bottom_left.has_epsilon) {
+            cfg.placer_config.epsilon = params.bottom_left.epsilon;
+        }
+    } else if constexpr (std::is_same_v<Placer, libnest2d::NfpPlacer>) {
+        if (!allow_rotations) {
+            cfg.placer_config.rotations = {static_cast<libnest2d::Radians>(0.0)};
+        } else if (params.nfp.has_rotations) {
+            std::vector<libnest2d::Radians> rotations;
+            rotations.reserve(params.nfp.rotations_rad.size());
+            for (double rad : params.nfp.rotations_rad) {
+                rotations.push_back(static_cast<libnest2d::Radians>(rad));
+            }
+            cfg.placer_config.rotations = std::move(rotations);
+        }
+        if (params.nfp.has_alignment) {
+            cfg.placer_config.alignment = parse_alignment(params.nfp.alignment);
+        }
+        if (params.nfp.has_starting_point) {
+            cfg.placer_config.starting_point = parse_starting_point(params.nfp.starting_point);
+        }
+        if (params.nfp.has_accuracy) {
+            cfg.placer_config.accuracy = params.nfp.accuracy;
+        }
+        if (params.nfp.has_explore_holes) {
+            cfg.placer_config.explore_holes = params.nfp.explore_holes;
+        }
+        if (params.nfp.has_parallel) {
+            cfg.placer_config.parallel = params.nfp.parallel;
         }
     }
 
-    ensure_time(start, time_limit_ms);
-    libnest2d::NestConfig<libnest2d::BottomLeftPlacer> cfg;
-    cfg.placer_config.allow_rotations = allow_rotations;
-    const auto bins_used = libnest2d::nest<libnest2d::BottomLeftPlacer>(items, bin, 0, cfg);
-    ensure_time(start, time_limit_ms);
+    const auto bins_used = libnest2d::nest<Placer, Selector>(items, bin, 0, cfg);
+    ensure_time(start, params.time_limit_ms);
 
     std::unordered_map<int, SheetSolution> solutions;
 
@@ -300,6 +459,60 @@ RunResult nest_run(
 
     result.used_bins = bins_used;
     return result;
+}
+
+RunResult nest_run(
+    const std::vector<ItemInstance> &instances,
+    const std::vector<Stock> &stocks,
+    const Trim &trim,
+    const Params &params,
+    const std::chrono::steady_clock::time_point &start
+) {
+    bool allow_rotations = true;
+    for (const auto &inst : instances) {
+        if (!inst.allow_rotation) {
+            allow_rotations = false;
+            break;
+        }
+    }
+
+    if (params.placer == "bottom_left") {
+        if (params.selector == "first_fit") {
+            return nest_run_impl<libnest2d::BottomLeftPlacer, libnest2d::FirstFitSelection>(
+                instances, stocks, trim, params, allow_rotations, start
+            );
+        }
+        if (params.selector == "filler") {
+            return nest_run_impl<libnest2d::BottomLeftPlacer, libnest2d::FillerSelection>(
+                instances, stocks, trim, params, allow_rotations, start
+            );
+        }
+        if (params.selector == "djd_heuristic") {
+            return nest_run_impl<libnest2d::BottomLeftPlacer, libnest2d::DJDHeuristic>(
+                instances, stocks, trim, params, allow_rotations, start
+            );
+        }
+    }
+
+    if (params.placer == "nfp") {
+        if (params.selector == "first_fit") {
+            return nest_run_impl<libnest2d::NfpPlacer, libnest2d::FirstFitSelection>(
+                instances, stocks, trim, params, allow_rotations, start
+            );
+        }
+        if (params.selector == "filler") {
+            return nest_run_impl<libnest2d::NfpPlacer, libnest2d::FillerSelection>(
+                instances, stocks, trim, params, allow_rotations, start
+            );
+        }
+        if (params.selector == "djd_heuristic") {
+            return nest_run_impl<libnest2d::NfpPlacer, libnest2d::DJDHeuristic>(
+                instances, stocks, trim, params, allow_rotations, start
+            );
+        }
+    }
+
+    throw PlacementError("unsupported placer/selector combination");
 }
 
 py::dict build_summary(
@@ -424,7 +637,7 @@ py::dict optimize(const py::dict &request) {
         std::mt19937_64 rng(static_cast<uint64_t>(run_seed));
         std::shuffle(shuffled.begin(), shuffled.end(), rng);
 
-        const auto run_result = nest_run(shuffled, stocks, trim, params.spacing, start, params.time_limit_ms);
+        const auto run_result = nest_run(shuffled, stocks, trim, params, start);
         const auto elapsed_ms = static_cast<int>(
             std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start).count()
         );
