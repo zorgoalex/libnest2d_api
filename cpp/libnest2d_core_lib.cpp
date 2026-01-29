@@ -119,6 +119,8 @@ struct RunResult {
     int used_bins = 0;
 };
 
+double deg_to_rad(double degrees);
+
 int64_t splitmix64(int64_t value) {
     uint64_t z = static_cast<uint64_t>(value) + 0x9E3779B97F4A7C15ULL;
     z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9ULL;
@@ -133,6 +135,10 @@ void ensure_time(const std::chrono::steady_clock::time_point &start, int time_li
     if (elapsed.count() > time_limit_ms) {
         throw TimeoutError("optimization exceeded time limit");
     }
+}
+
+double deg_to_rad(double degrees) {
+    return degrees * M_PI / 180.0;
 }
 
 Trim parse_trim(const py::dict &data) {
@@ -275,43 +281,75 @@ bool is_rotated(double radians) {
     return std::fabs(norm - half_pi) < 1e-3 || std::fabs(norm - 3.0 * half_pi) < 1e-3;
 }
 
-double deg_to_rad(double degrees) {
-    return degrees * M_PI / 180.0;
-}
+template <typename T, typename = void>
+struct has_alignment_field : std::false_type {};
 
-libnest2d::NfpPlacer::Alignment parse_alignment(const std::string &value) {
-    using Alignment = libnest2d::NfpPlacer::Alignment;
+template <typename T>
+struct has_alignment_field<T, std::void_t<decltype(std::declval<T>().alignment)>> : std::true_type {};
+
+template <typename T, typename = void>
+struct has_starting_point_field : std::false_type {};
+
+template <typename T>
+struct has_starting_point_field<T, std::void_t<decltype(std::declval<T>().starting_point)>> : std::true_type {};
+
+template <typename T, typename = void>
+struct has_accuracy_field : std::false_type {};
+
+template <typename T>
+struct has_accuracy_field<T, std::void_t<decltype(std::declval<T>().accuracy)>> : std::true_type {};
+
+template <typename T, typename = void>
+struct has_explore_holes_field : std::false_type {};
+
+template <typename T>
+struct has_explore_holes_field<T, std::void_t<decltype(std::declval<T>().explore_holes)>> : std::true_type {};
+
+template <typename T, typename = void>
+struct has_parallel_field : std::false_type {};
+
+template <typename T>
+struct has_parallel_field<T, std::void_t<decltype(std::declval<T>().parallel)>> : std::true_type {};
+
+template <typename T, typename = void>
+struct has_rotations_field : std::false_type {};
+
+template <typename T>
+struct has_rotations_field<T, std::void_t<decltype(std::declval<T>().rotations)>> : std::true_type {};
+
+template <typename AlignmentType>
+AlignmentType parse_alignment_value(const std::string &value) {
     if (value == "center") {
-        return Alignment::CENTER;
+        return AlignmentType::CENTER;
     }
     if (value == "bottom_left") {
-        return Alignment::BOTTOM_LEFT;
+        return AlignmentType::BOTTOM_LEFT;
     }
     if (value == "bottom_right") {
-        return Alignment::BOTTOM_RIGHT;
+        return AlignmentType::BOTTOM_RIGHT;
     }
     if (value == "top_left") {
-        return Alignment::TOP_LEFT;
+        return AlignmentType::TOP_LEFT;
     }
     if (value == "top_right") {
-        return Alignment::TOP_RIGHT;
+        return AlignmentType::TOP_RIGHT;
     }
     throw std::invalid_argument("invalid alignment value");
 }
 
-libnest2d::NfpPlacer::StartingPoint parse_starting_point(const std::string &value) {
-    using StartingPoint = libnest2d::NfpPlacer::StartingPoint;
+template <typename StartType>
+StartType parse_starting_point_value(const std::string &value) {
     if (value == "bottom_left") {
-        return StartingPoint::BOTTOM_LEFT;
+        return StartType::BOTTOM_LEFT;
     }
     if (value == "bottom_right") {
-        return StartingPoint::BOTTOM_RIGHT;
+        return StartType::BOTTOM_RIGHT;
     }
     if (value == "top_left") {
-        return StartingPoint::TOP_LEFT;
+        return StartType::TOP_LEFT;
     }
     if (value == "top_right") {
-        return StartingPoint::TOP_RIGHT;
+        return StartType::TOP_RIGHT;
     }
     throw std::invalid_argument("invalid starting_point value");
 }
@@ -362,34 +400,54 @@ RunResult nest_run_impl(
             cfg.placer_config.epsilon = params.bottom_left.epsilon;
         }
     } else if constexpr (std::is_same_v<Placer, libnest2d::NfpPlacer>) {
-        if (!allow_rotations) {
-            cfg.placer_config.rotations = {static_cast<libnest2d::Radians>(0.0)};
-        } else if (params.nfp.has_rotations) {
-            std::vector<libnest2d::Radians> rotations;
-            rotations.reserve(params.nfp.rotations_rad.size());
-            for (double rad : params.nfp.rotations_rad) {
-                rotations.push_back(static_cast<libnest2d::Radians>(rad));
+        using ConfigT = decltype(cfg.placer_config);
+        if constexpr (has_rotations_field<ConfigT>::value) {
+            if (!allow_rotations) {
+                cfg.placer_config.rotations = {static_cast<libnest2d::Radians>(0.0)};
+            } else if (params.nfp.has_rotations) {
+                std::vector<libnest2d::Radians> rotations;
+                rotations.reserve(params.nfp.rotations_rad.size());
+                for (double rad : params.nfp.rotations_rad) {
+                    rotations.push_back(static_cast<libnest2d::Radians>(rad));
+                }
+                cfg.placer_config.rotations = std::move(rotations);
             }
-            cfg.placer_config.rotations = std::move(rotations);
         }
-        if (params.nfp.has_alignment) {
-            cfg.placer_config.alignment = parse_alignment(params.nfp.alignment);
+        if constexpr (has_alignment_field<ConfigT>::value) {
+            if (params.nfp.has_alignment) {
+                using AlignmentType = std::decay_t<decltype(cfg.placer_config.alignment)>;
+                cfg.placer_config.alignment = parse_alignment_value<AlignmentType>(params.nfp.alignment);
+            }
         }
-        if (params.nfp.has_starting_point) {
-            cfg.placer_config.starting_point = parse_starting_point(params.nfp.starting_point);
+        if constexpr (has_starting_point_field<ConfigT>::value) {
+            if (params.nfp.has_starting_point) {
+                using StartType = std::decay_t<decltype(cfg.placer_config.starting_point)>;
+                cfg.placer_config.starting_point = parse_starting_point_value<StartType>(params.nfp.starting_point);
+            }
         }
-        if (params.nfp.has_accuracy) {
-            cfg.placer_config.accuracy = params.nfp.accuracy;
+        if constexpr (has_accuracy_field<ConfigT>::value) {
+            if (params.nfp.has_accuracy) {
+                cfg.placer_config.accuracy = params.nfp.accuracy;
+            }
         }
-        if (params.nfp.has_explore_holes) {
-            cfg.placer_config.explore_holes = params.nfp.explore_holes;
+        if constexpr (has_explore_holes_field<ConfigT>::value) {
+            if (params.nfp.has_explore_holes) {
+                cfg.placer_config.explore_holes = params.nfp.explore_holes;
+            }
         }
-        if (params.nfp.has_parallel) {
-            cfg.placer_config.parallel = params.nfp.parallel;
+        if constexpr (has_parallel_field<ConfigT>::value) {
+            if (params.nfp.has_parallel) {
+                cfg.placer_config.parallel = params.nfp.parallel;
+            }
         }
     }
 
-    const auto bins_used = libnest2d::nest<Placer, Selector>(items, bin, 0, cfg);
+    const auto bins_used = libnest2d::nest<Placer, Selector>(
+        items,
+        bin,
+        static_cast<int>(sheets.size()),
+        cfg
+    );
     ensure_time(start, params.time_limit_ms);
 
     std::unordered_map<int, SheetSolution> solutions;
@@ -415,12 +473,20 @@ RunResult nest_run_impl(
         const int64_t height = max_y - min_y - spacing;
 
         int bin_id = item.binId();
+        if (bin_id < 0) {
+            throw PlacementError("unable to place all items with available stock");
+        }
+        if (static_cast<size_t>(bin_id) >= sheets.size()) {
+            const int alt = bin_id - 1;
+            if (alt >= 0 && static_cast<size_t>(alt) < sheets.size()) {
+                bin_id = alt;
+            } else {
+                throw PlacementError("invalid bin index from libnest2d");
+            }
+        }
 
         auto it = solutions.find(bin_id);
         if (it == solutions.end()) {
-            if (bin_id < 0 || static_cast<size_t>(bin_id) >= sheets.size()) {
-                throw PlacementError("invalid bin index from libnest2d");
-            }
             const auto *stock = sheets[bin_id].first;
             SheetSolution sheet{
                 stock->id,
@@ -495,21 +561,7 @@ RunResult nest_run(
     }
 
     if (params.placer == "nfp") {
-        if (params.selector == "first_fit") {
-            return nest_run_impl<libnest2d::NfpPlacer, libnest2d::FirstFitSelection>(
-                instances, stocks, trim, params, allow_rotations, start
-            );
-        }
-        if (params.selector == "filler") {
-            return nest_run_impl<libnest2d::NfpPlacer, libnest2d::FillerSelection>(
-                instances, stocks, trim, params, allow_rotations, start
-            );
-        }
-        if (params.selector == "djd_heuristic") {
-            return nest_run_impl<libnest2d::NfpPlacer, libnest2d::DJDHeuristic>(
-                instances, stocks, trim, params, allow_rotations, start
-            );
-        }
+        throw PlacementError("nfp placer not available in this build");
     }
 
     throw PlacementError("unsupported placer/selector combination");
