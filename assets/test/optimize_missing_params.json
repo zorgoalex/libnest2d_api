@@ -1,0 +1,9 @@
+{
+  "units": "mm",
+  "stock": [
+    {"id": "sheet-1", "width_mm": 100, "height_mm": 100, "qty": 1}
+  ],
+  "items": [
+    {"id": "a", "width_mm": 30, "height_mm": 40, "qty": 1, "rotation": "allow_90", "pattern_direction": "none"}
+  ]
+}

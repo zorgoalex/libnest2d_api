@@ -1,0 +1,334 @@
+{
+  "units": "mm",
+  "params": {
+    "spacing_mm": 1,
+    "trim_mm": {
+      "left": 0,
+      "right": 0,
+      "top": 0,
+      "bottom": 0
+    },
+    "time_limit_ms": 500,
+    "restarts": 1,
+    "objective": "min_waste",
+    "seed": 1
+  },
+  "stock": [
+    {
+      "id": "sheet-0",
+      "width_mm": 100,
+      "height_mm": 100,
+      "qty": 1
+    },
+    {
+      "id": "sheet-1",
+      "width_mm": 100,
+      "height_mm": 100,
+      "qty": 1
+    },
+    {
+      "id": "sheet-2",
+      "width_mm": 100,
+      "height_mm": 100,
+      "qty": 1
+    },
+    {
+      "id": "sheet-3",
+      "width_mm": 100,
+      "height_mm": 100,
+      "qty": 1
+    },
+    {
+      "id": "sheet-4",
+      "width_mm": 100,
+      "height_mm": 100,
+      "qty": 1
+    },
+    {
+      "id": "sheet-5",
+      "width_mm": 100,
+      "height_mm": 100,
+      "qty": 1
+    },
+    {
+      "id": "sheet-6",
+      "width_mm": 100,
+      "height_mm": 100,
+      "qty": 1
+    },
+    {
+      "id": "sheet-7",
+      "width_mm": 100,
+      "height_mm": 100,
+      "qty": 1
+    },
+    {
+      "id": "sheet-8",
+      "width_mm": 100,
+      "height_mm": 100,
+      "qty": 1
+    },
+    {
+      "id": "sheet-9",
+      "width_mm": 100,
+      "height_mm": 100,
+      "qty": 1
+    },
+    {
+      "id": "sheet-10",
+      "width_mm": 100,
+      "height_mm": 100,
+      "qty": 1
+    },
+    {
+      "id": "sheet-11",
+      "width_mm": 100,
+      "height_mm": 100,
+      "qty": 1
+    },
+    {
+      "id": "sheet-12",
+      "width_mm": 100,
+      "height_mm": 100,
+      "qty": 1
+    },
+    {
+      "id": "sheet-13",
+      "width_mm": 100,
+      "height_mm": 100,
+      "qty": 1
+    },
+    {
+      "id": "sheet-14",
+      "width_mm": 100,
+      "height_mm": 100,
+      "qty": 1
+    },
+    {
+      "id": "sheet-15",
+      "width_mm": 100,
+      "height_mm": 100,
+      "qty": 1
+    },
+    {
+      "id": "sheet-16",
+      "width_mm": 100,
+      "height_mm": 100,
+      "qty": 1
+    },
+    {
+      "id": "sheet-17",
+      "width_mm": 100,
+      "height_mm": 100,
+      "qty": 1
+    },
+    {
+      "id": "sheet-18",
+      "width_mm": 100,
+      "height_mm": 100,
+      "qty": 1
+    },
+    {
+      "id": "sheet-19",
+      "width_mm": 100,
+      "height_mm": 100,
+      "qty": 1
+    },
+    {
+      "id": "sheet-20",
+      "width_mm": 100,
+      "height_mm": 100,
+      "qty": 1
+    },
+    {
+      "id": "sheet-21",
+      "width_mm": 100,
+      "height_mm": 100,
+      "qty": 1
+    },
+    {
+      "id": "sheet-22",
+      "width_mm": 100,
+      "height_mm": 100,
+      "qty": 1
+    },
+    {
+      "id": "sheet-23",
+      "width_mm": 100,
+      "height_mm": 100,
+      "qty": 1
+    },
+    {
+      "id": "sheet-24",
+      "width_mm": 100,
+      "height_mm": 100,
+      "qty": 1
+    },
+    {
+      "id": "sheet-25",
+      "width_mm": 100,
+      "height_mm": 100,
+      "qty": 1
+    },
+    {
+      "id": "sheet-26",
+      "width_mm": 100,
+      "height_mm": 100,
+      "qty": 1
+    },
+    {
+      "id": "sheet-27",
+      "width_mm": 100,
+      "height_mm": 100,
+      "qty": 1
+    },
+    {
+      "id": "sheet-28",
+      "width_mm": 100,
+      "height_mm": 100,
+      "qty": 1
+    },
+    {
+      "id": "sheet-29",
+      "width_mm": 100,
+      "height_mm": 100,
+      "qty": 1
+    },
+    {
+      "id": "sheet-30",
+      "width_mm": 100,
+      "height_mm": 100,
+      "qty": 1
+    },
+    {
+      "id": "sheet-31",
+      "width_mm": 100,
+      "height_mm": 100,
+      "qty": 1
+    },
+    {
+      "id": "sheet-32",
+      "width_mm": 100,
+      "height_mm": 100,
+      "qty": 1
+    },
+    {
+      "id": "sheet-33",
+      "width_mm": 100,
+      "height_mm": 100,
+      "qty": 1
+    },
+    {
+      "id": "sheet-34",
+      "width_mm": 100,
+      "height_mm": 100,
+      "qty": 1
+    },
+    {
+      "id": "sheet-35",
+      "width_mm": 100,
+      "height_mm": 100,
+      "qty": 1
+    },
+    {
+      "id": "sheet-36",
+      "width_mm": 100,
+      "height_mm": 100,
+      "qty": 1
+    },
+    {
+      "id": "sheet-37",
+      "width_mm": 100,
+      "height_mm": 100,
+      "qty": 1
+    },
+    {
+      "id": "sheet-38",
+      "width_mm": 100,
+      "height_mm": 100,
+      "qty": 1
+    },
+    {
+      "id": "sheet-39",
+      "width_mm": 100,
+      "height_mm": 100,
+      "qty": 1
+    },
+    {
+      "id": "sheet-40",
+      "width_mm": 100,
+      "height_mm": 100,
+      "qty": 1
+    },
+    {
+      "id": "sheet-41",
+      "width_mm": 100,
+      "height_mm": 100,
+      "qty": 1
+    },
+    {
+      "id": "sheet-42",
+      "width_mm": 100,
+      "height_mm": 100,
+      "qty": 1
+    },
+    {
+      "id": "sheet-43",
+      "width_mm": 100,
+      "height_mm": 100,
+      "qty": 1
+    },
+    {
+      "id": "sheet-44",
+      "width_mm": 100,
+      "height_mm": 100,
+      "qty": 1
+    },
+    {
+      "id": "sheet-45",
+      "width_mm": 100,
+      "height_mm": 100,
+      "qty": 1
+    },
+    {
+      "id": "sheet-46",
+      "width_mm": 100,
+      "height_mm": 100,
+      "qty": 1
+    },
+    {
+      "id": "sheet-47",
+      "width_mm": 100,
+      "height_mm": 100,
+      "qty": 1
+    },
+    {
+      "id": "sheet-48",
+      "width_mm": 100,
+      "height_mm": 100,
+      "qty": 1
+    },
+    {
+      "id": "sheet-49",
+      "width_mm": 100,
+      "height_mm": 100,
+      "qty": 1
+    },
+    {
+      "id": "sheet-50",
+      "width_mm": 100,
+      "height_mm": 100,
+      "qty": 1
+    }
+  ],
+  "items": [
+    {
+      "id": "a",
+      "width_mm": 10,
+      "height_mm": 10,
+      "qty": 1,
+      "rotation": "allow_90",
+      "pattern_direction": "none"
+    }
+  ]
+}
