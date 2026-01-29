@@ -1,0 +1,18 @@
+{
+  "units": "mm",
+  "params": {
+    "spacing_mm": 1,
+    "trim_mm": {"left": 0, "right": 0, "top": 0, "bottom": 0},
+    "time_limit_ms": 500,
+    "restarts": 1,
+    "objective": "min_waste",
+    "seed": 1
+  },
+  "stock": [
+    {"id": "sheet-1", "width_mm": 100, "height_mm": 100, "qty": 1}
+  ],
+  "items": [
+    {"id": "a", "width_mm": 30, "height_mm": 40, "qty": 1, "rotation": "allow_90", "pattern_direction": "none"},
+    {"id": "b", "width_mm": 20, "height_mm": 10, "qty": 2, "rotation": "allow_90", "pattern_direction": "none"}
+  ]
+}
