@@ -52,3 +52,9 @@ if (TARGET libnest2d_headeronly)
     target_link_libraries(libnest2d_core PRIVATE libnest2d_headeronly)
     target_compile_definitions(libnest2d_core PRIVATE USE_LIBNEST2D)
 endif()
+
+install(TARGETS libnest2d_core
+    LIBRARY DESTINATION .
+    RUNTIME DESTINATION .
+    ARCHIVE DESTINATION .
+)
