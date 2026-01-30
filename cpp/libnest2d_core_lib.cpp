@@ -119,6 +119,13 @@ struct RunResult {
     int used_bins = 0;
 };
 
+enum class CoordMapping {
+    ORIGIN_Y_UP,
+    ORIGIN_Y_DOWN,
+    CENTER_Y_UP,
+    CENTER_Y_DOWN,
+};
+
 double deg_to_rad(double degrees);
 
 int64_t splitmix64(int64_t value) {
@@ -376,11 +383,13 @@ RunResult nest_run_impl(
     for (const auto &inst : instances) {
         const int64_t width = inst.width + spacing;
         const int64_t height = inst.height + spacing;
+        const int64_t half_w = width / 2;
+        const int64_t half_h = height / 2;
         std::vector<libnest2d::Point> poly = {
-            libnest2d::Point{0, 0},
-            libnest2d::Point{width, 0},
-            libnest2d::Point{width, height},
-            libnest2d::Point{0, height},
+            libnest2d::Point{-half_w, -half_h},
+            libnest2d::Point{width - half_w, -half_h},
+            libnest2d::Point{width - half_w, height - half_h},
+            libnest2d::Point{-half_w, height - half_h},
         };
         items.emplace_back(poly);
     }
@@ -450,7 +459,22 @@ RunResult nest_run_impl(
     );
     ensure_time(start, params.time_limit_ms);
 
+    struct RawPlacement {
+        int bin_id;
+        int index;
+        int64_t min_x;
+        int64_t min_y;
+        int64_t max_x;
+        int64_t max_y;
+        int64_t width;
+        int64_t height;
+        bool rotated;
+        ItemInstance meta;
+    };
+
     std::unordered_map<int, SheetSolution> solutions;
+    std::vector<RawPlacement> raw_placements;
+    raw_placements.reserve(items.size());
 
     for (size_t idx = 0; idx < items.size(); ++idx) {
         const auto &item = items[idx];
@@ -465,8 +489,6 @@ RunResult nest_run_impl(
         const int64_t max_x = max_pt.X;
         const int64_t max_y = max_pt.Y;
 
-        const int64_t x = min_x;
-        const int64_t y = usable_h - max_y;
         const int64_t width = max_x - min_x - spacing;
         const int64_t height = max_y - min_y - spacing;
 
@@ -483,30 +505,70 @@ RunResult nest_run_impl(
             }
         }
 
-        auto it = solutions.find(bin_id);
+        const bool rotated = is_rotated(item.rotation());
+        raw_placements.push_back(RawPlacement{
+            bin_id,
+            static_cast<int>(idx + 1),
+            min_x,
+            min_y,
+            max_x,
+            max_y,
+            width,
+            height,
+            rotated,
+            meta,
+        });
+    }
+
+    const CoordMapping selected_mapping = CoordMapping::CENTER_Y_UP;
+
+    const int64_t half_w = usable_w / 2;
+    const int64_t half_h = usable_h / 2;
+    for (const auto &raw : raw_placements) {
+        auto it = solutions.find(raw.bin_id);
         if (it == solutions.end()) {
-            const auto *stock = sheets[bin_id].first;
+            const auto *stock = sheets[raw.bin_id].first;
             SheetSolution sheet{
                 stock->id,
-                sheets[bin_id].second,
+                sheets[raw.bin_id].second,
                 stock->width,
                 stock->height,
                 trim,
                 {},
             };
-            it = solutions.emplace(bin_id, std::move(sheet)).first;
+            it = solutions.emplace(raw.bin_id, std::move(sheet)).first;
         }
 
-        const bool rotated = is_rotated(item.rotation());
+        int64_t x = 0;
+        int64_t y = 0;
+        switch (selected_mapping) {
+        case CoordMapping::ORIGIN_Y_UP:
+            x = raw.min_x;
+            y = usable_h - raw.max_y;
+            break;
+        case CoordMapping::ORIGIN_Y_DOWN:
+            x = raw.min_x;
+            y = raw.min_y;
+            break;
+        case CoordMapping::CENTER_Y_UP:
+            x = raw.min_x + half_w;
+            y = half_h - raw.max_y;
+            break;
+        case CoordMapping::CENTER_Y_DOWN:
+            x = raw.min_x + half_w;
+            y = raw.min_y + half_h;
+            break;
+        }
+
         it->second.placements.push_back(Placement{
-            meta.id,
-            static_cast<int>(idx + 1),
+            raw.meta.id,
+            raw.index,
             x,
             y,
-            width,
-            height,
-            rotated,
-            meta.pattern_direction,
+            raw.width,
+            raw.height,
+            raw.rotated,
+            raw.meta.pattern_direction,
         });
     }
 

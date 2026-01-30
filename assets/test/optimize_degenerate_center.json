@@ -1,0 +1,17 @@
+{
+  "units": "mm",
+  "params": {
+    "spacing_mm": 0,
+    "trim_mm": {"left": 10, "right": 10, "top": 10, "bottom": 10},
+    "time_limit_ms": 500,
+    "restarts": 1,
+    "objective": "min_waste",
+    "seed": 1
+  },
+  "stock": [
+    {"id": "sheet-1", "width_mm": 120, "height_mm": 220, "qty": 1}
+  ],
+  "items": [
+    {"id": "part-1", "width_mm": 200, "height_mm": 100, "qty": 1, "rotation": "allow_90", "pattern_direction": "none"}
+  ]
+}
